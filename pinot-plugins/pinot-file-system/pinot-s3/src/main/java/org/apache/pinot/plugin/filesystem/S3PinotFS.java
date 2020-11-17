@@ -225,14 +225,14 @@ public class S3PinotFS extends PinotFS {
       }
 
       String dstPath = sanitizePath(dstUri.getPath());
+      CopyObjectRequest.Builder copyReqBuilder = CopyObjectRequest.builder().copySource(encodedUrl)
+          .destinationBucket(dstUri.getHost()).destinationKey(dstPath);
       CopyObjectRequest copyReq;
 
       if (!disableAcl) {
-        copyReq = CopyObjectRequest.builder().copySource(encodedUrl).destinationBucket(dstUri.getHost())
-            .destinationKey(dstPath).acl(ObjectCannedACL.BUCKET_OWNER_FULL_CONTROL).build();
+        copyReq = copyReqBuilder.acl(ObjectCannedACL.BUCKET_OWNER_FULL_CONTROL).build();
       } else {
-        copyReq = CopyObjectRequest.builder().copySource(encodedUrl).destinationBucket(dstUri.getHost())
-            .destinationKey(dstPath).build();
+        copyReq = copyReqBuilder.build();
       }
 
       CopyObjectResponse copyObjectResponse = _s3Client.copyObject(copyReq);
@@ -254,14 +254,13 @@ public class S3PinotFS extends PinotFS {
         return true;
       }
 
+      PutObjectRequest.Builder putReqBuilder = PutObjectRequest.builder().bucket(uri.getHost()).key(path);
       PutObjectRequest putObjectRequest;
 
       if (!disableAcl) {
-        putObjectRequest =
-            PutObjectRequest.builder().bucket(uri.getHost()).key(path).acl(ObjectCannedACL.BUCKET_OWNER_FULL_CONTROL)
-                .build();
+        putObjectRequest = putReqBuilder.acl(ObjectCannedACL.BUCKET_OWNER_FULL_CONTROL).build();
       } else {
-        putObjectRequest = PutObjectRequest.builder().bucket(uri.getHost()).key(path).build();
+        putObjectRequest = putReqBuilder.build();
       }
 
       PutObjectResponse putObjectResponse = _s3Client.putObject(putObjectRequest, RequestBody.fromBytes(new byte[0]));
@@ -459,14 +458,13 @@ public class S3PinotFS extends PinotFS {
     LOGGER.info("Copy {} from local to {}", srcFile.getAbsolutePath(), dstUri);
     URI base = getBase(dstUri);
     String prefix = sanitizePath(base.relativize(dstUri).getPath());
+    PutObjectRequest.Builder putReqBuilder = PutObjectRequest.builder().bucket(dstUri.getHost()).key(prefix);
     PutObjectRequest putObjectRequest;
 
     if (!disableAcl) {
-      putObjectRequest =
-          PutObjectRequest.builder().bucket(dstUri.getHost()).key(prefix).acl(ObjectCannedACL.BUCKET_OWNER_FULL_CONTROL)
-              .build();
+      putObjectRequest = putReqBuilder.acl(ObjectCannedACL.BUCKET_OWNER_FULL_CONTROL).build();
     } else {
-      putObjectRequest = PutObjectRequest.builder().bucket(dstUri.getHost()).key(prefix).build();
+      putObjectRequest = putReqBuilder.build();
     }
 
     _s3Client.putObject(putObjectRequest, srcFile.toPath());
@@ -513,17 +511,15 @@ public class S3PinotFS extends PinotFS {
       String path = sanitizePath(uri.getPath());
       Map<String, String> mp = new HashMap<>();
       mp.put("lastModified", String.valueOf(System.currentTimeMillis()));
+      CopyObjectRequest.Builder copyReqBuilder = CopyObjectRequest.builder().copySource(encodedUrl)
+          .destinationBucket(uri.getHost()).destinationKey(path)
+          .metadata(mp).metadataDirective(MetadataDirective.REPLACE);
       CopyObjectRequest request;
 
       if (!disableAcl) {
-        request =
-            CopyObjectRequest.builder().copySource(encodedUrl).destinationBucket(uri.getHost()).destinationKey(path)
-                .metadata(mp).metadataDirective(MetadataDirective.REPLACE)
-                .acl(ObjectCannedACL.BUCKET_OWNER_FULL_CONTROL).build();
+        request = copyReqBuilder.acl(ObjectCannedACL.BUCKET_OWNER_FULL_CONTROL).build();
       } else {
-        request =
-            CopyObjectRequest.builder().copySource(encodedUrl).destinationBucket(uri.getHost()).destinationKey(path)
-                .metadata(mp).metadataDirective(MetadataDirective.REPLACE).build();
+        request = copyReqBuilder.build();
       }
 
       _s3Client.copyObject(request);
@@ -531,14 +527,13 @@ public class S3PinotFS extends PinotFS {
       return newUpdateTime > s3ObjectMetadata.lastModified().toEpochMilli();
     } catch (NoSuchKeyException e) {
       String path = sanitizePath(uri.getPath());
+      PutObjectRequest.Builder putReqBuilder = PutObjectRequest.builder().bucket(uri.getHost()).key(path);
       PutObjectRequest putObjectRequest;
 
       if (!disableAcl) {
-        putObjectRequest =
-            PutObjectRequest.builder().bucket(uri.getHost()).key(path).acl(ObjectCannedACL.BUCKET_OWNER_FULL_CONTROL)
-                .build();
+        putObjectRequest = putReqBuilder.acl(ObjectCannedACL.BUCKET_OWNER_FULL_CONTROL).build();
       } else {
-        putObjectRequest = PutObjectRequest.builder().bucket(uri.getHost()).key(path).build();
+        putObjectRequest = putReqBuilder.build();
       }
 
       _s3Client.putObject(putObjectRequest, RequestBody.fromBytes(new byte[0]));
